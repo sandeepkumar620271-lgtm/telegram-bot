@@ -27,4 +27,4 @@ jobs:
 
           gh api -X POST "user/codespaces/$CODESPACE_ID/restart"
     env:
-      GITHUB_TOKEN: ${{ secrets.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 }}
+      GITHUB_TOKEN: ${{ secrets.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}}
