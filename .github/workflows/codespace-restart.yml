@@ -1,0 +1,30 @@
+name: Auto Restart Codespace
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # every 10 minutes
+  workflow_dispatch:          # allow manual trigger
+
+jobs:
+  restart:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restart Codespace
+        run: |
+          echo "🔄 Restarting Codespace..."
+          CODESPACE_NAME="ominous-chainsaw-974wq577pgqw3xr6j"   # change this
+
+          # Get codespace ID
+          CODESPACE_ID=$(gh codespace list --json name,id | jq -r ".[] | select(.name==\"$CODESPACE_NAME\") | .id")
+
+          if [ -z "$CODESPACE_ID" ]; then
+            echo "❌ Codespace not found"
+            exit 1
+          fi
+
+          gh api -X POST "user/codespaces/$CODESPACE_ID/restart"
+    env:
+      GITHUB_TOKEN: ${{ secrets.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 }}
