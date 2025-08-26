@@ -1,30 +1,41 @@
-name: Auto Restart Codespace
+name: Auto Restart Codespace if Stopped
 
 on:
   schedule:
-    - cron: "*/10 * * * *"   # every 10 minutes
-  workflow_dispatch:          # allow manual trigger
+    - cron: "*/5 * * * *"   # check every 5 minutes
+  workflow_dispatch:          # manual trigger
 
 jobs:
-  restart:
+  check-restart:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Restart Codespace
+      - name: Install GitHub CLI & jq
         run: |
-          echo "🔄 Restarting Codespace..."
-          CODESPACE_NAME="ominous-chainsaw-974wq577pgqw3xr6j"   # change this
+          sudo apt-get update
+          sudo apt-get install -y jq gh
 
-          # Get codespace ID
-          CODESPACE_ID=$(gh codespace list --json name,id | jq -r ".[] | select(.name==\"$CODESPACE_NAME\") | .id")
+      - name: Authenticate GitHub CLI
+        run: |
+          echo "${{ secrets.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 }}" | gh auth login --with-token
 
-          if [ -z "$CODESPACE_ID" ]; then
-            echo "❌ Codespace not found"
+      - name: Check Codespace Status and Restart if Needed
+        run: |
+          CODESPACE_NAME="teffective-train-wrjx95rrw4j6h9x5j"   # change this
+
+          echo "🔍 Checking codespace: $CODESPACE_NAME..."
+          STATUS=$(gh codespace list --json name,state | jq -r ".[] | select(.name==\"$CODESPACE_NAME\") | .state")
+
+          if [ -z "$STATUS" ]; then
+            echo "❌ Codespace $CODESPACE_NAME not found"
             exit 1
           fi
 
-          gh api -X POST "user/codespaces/$CODESPACE_ID/restart"
-    env:
-      GITHUB_TOKEN: ${{ secrets.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}}
+          echo "ℹ️ Current status: $STATUS"
+          if [ "$STATUS" = "Stopped" ]; then
+            echo "🔄 Restarting Codespace..."
+            CODESPACE_ID=$(gh codespace list --json name,id | jq -r ".[] | select(.name==\"$CODESPACE_NAME\") | .id")
+            gh api -X POST "user/codespaces/$CODESPACE_ID/restart"
+            echo "✅ Restart request sent!"
+          else
+            echo "✅ Codespace is already running."
+          fi
